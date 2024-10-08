@@ -1,0 +1,10 @@
+/node_modules
+/models/*.obj
+/models/*.fbx
+/models/*.gltf
+.env
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
