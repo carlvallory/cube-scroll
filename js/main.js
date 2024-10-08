@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 import { gsap, ScrollTrigger, Draggable, MotionPathPlugin } from "gsap/all";
 import GUI from 'lil-gui';
+import { iridescenceIOR } from 'three/webgpu';
 
 gsap.registerPlugin(ScrollTrigger, Draggable, MotionPathPlugin); 
 
@@ -64,13 +65,20 @@ const pointLightTwo = new THREE.PointLight(0xdde3e6, 1);
 const pointLightThree = new THREE.PointLight(0xdde3e6, 1);
 
 const crystalSideMaterial = new THREE.MeshPhysicalMaterial({
-    side: THREE.DoubleSide,
-    backsideThickness:-1,
-    thickness:-1,
-    anisotropicBlur:0.02,
-    metalness: 1,
+    transparent: true,
+    opacity: 0.5,
+    transmission: 0,
+    thickness: -1,
     roughness: 0,
+    metalness: 1,
+    anisotropy: 1,
+    ior: 0,
+    reflectivity: 0,
+    iridescenceIOR: 0,
+    sheen: 1, // Simular efectos de dispersión de luz
+    sheenColor: new THREE.Color(0x000000), // Efecto prismático con un color inicial
     envMapIntensity: 1,
+    side: THREE.DoubleSide,
 }); 
 
 const exrLoader = new EXRLoader(loadingManager);
@@ -114,10 +122,17 @@ const cubeGeometry = new THREE.BoxGeometry(4, 4, 4);
 const cube = new THREE.Mesh(cubeGeometry, crystalSideMaterial);
 sceneOne.add(cube);
 
-gui.add(cube.material, 'thickness');
-gui.add(cube.material, 'metalness');
-gui.add(cube.material, 'roughness');
-
+gui.add(cube.material, 'transparent');
+gui.add(cube.material, 'opacity', 0, 1, 0.1);
+gui.add(cube.material, 'transmission', 0, 1, 0.1);
+gui.add(cube.material, 'thickness', -1, 1, 0.1);
+gui.add(cube.material, 'roughness', 0, 1, 0.1);
+gui.add(cube.material, 'metalness', 0, 1, 0.1);
+gui.add(cube.material, 'anisotropy', -1, 1, 0.1);
+gui.add(cube.material, 'ior', 1, 2.333, 0.001);
+gui.add(cube.material, 'reflectivity', 0, 1, 0.1);
+gui.add(cube.material, 'iridescenceIOR', 1, 2.333, 0.001);
+gui.add(cube.material, 'sheen', 0, 1, 0.1);
 
 // ESCENA DOS
 const sceneTwo = new THREE.Scene();
