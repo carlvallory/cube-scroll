@@ -31,10 +31,27 @@ loadingManager.onError = function (url) {
     console.error('Error al cargar ' + url);
 };
 
+const clock = new THREE.Clock();
+
+const backgroundObject = {
+    color: 0xfefefe,
+};
+const ambientLightObject = {
+    color: 0xfefefe,
+    intensity: 0.5,
+}
+const lightObject = {
+    color: 0xfefefe,
+    alternativeColor: 0xdde3e6,
+    intensity: 1,
+}
+
 // Crear la escena
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xfefefe);
+scene.background = new THREE.Color(backgroundObject.color);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const windowHalfX = window.innerWidth / 2; // Usamos const porque este valor no cambiará
+const windowHalfY = window.innerHeight / 2;
 camera.position.z = 7;
 // Crear un CubeCamera para las reflexiones
 const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256, {
@@ -53,16 +70,16 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 // Iluminación
-const ambientLight = new THREE.AmbientLight(0xfefefe, 0.5);  // Luz ambiental
+const ambientLight = new THREE.AmbientLight(ambientLightObject.color, ambientLightObject.intensity);  // Luz ambiental
 scene.add(ambientLight);
 
-const pointLight = new THREE.PointLight(0xfefefe, 1);
+const pointLight = new THREE.PointLight(lightObject.color, lightObject.intensity);
 pointLight.position.set(5, 5, 5);
 scene.add(pointLight);
 
-const pointLightOne = new THREE.PointLight(0xdde3e6, 1);
-const pointLightTwo = new THREE.PointLight(0xdde3e6, 1);
-const pointLightThree = new THREE.PointLight(0xdde3e6, 1);
+const pointLightOne = new THREE.PointLight(lightObject.alternativeColor, lightObject.intensity);
+const pointLightTwo = new THREE.PointLight(lightObject.alternativeColor, lightObject.intensity);
+const pointLightThree = new THREE.PointLight(lightObject.alternativeColor, lightObject.intensity);
 
 const crystalSideMaterial = new THREE.MeshPhysicalMaterial({
     transparent: true,
@@ -76,7 +93,7 @@ const crystalSideMaterial = new THREE.MeshPhysicalMaterial({
     reflectivity: 0,
     iridescenceIOR: 0,
     sheen: 1, // Simular efectos de dispersión de luz
-    sheenColor: new THREE.Color(0x000000), // Efecto prismático con un color inicial
+    sheenColor: new THREE.Color(lightObject.color), // Efecto prismático con un color inicial
     envMapIntensity: 1,
     side: THREE.DoubleSide,
 }); 
@@ -99,15 +116,15 @@ function (error) {
 });
 
 window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 
 // Escena
 const sceneOne = new THREE.Scene();
-sceneOne.background = new THREE.Color(0xfefefe);  // Fondo blanco
+sceneOne.background = new THREE.Color(backgroundObject.color);  // Fondo blanco
 // Iluminación
 pointLightOne.position.set(-5, 5, 5);
 pointLightTwo.position.set(0, 5, 5);
@@ -134,9 +151,20 @@ gui.add(cube.material, 'reflectivity', 0, 1, 0.1);
 gui.add(cube.material, 'iridescenceIOR', 1, 2.333, 0.001);
 gui.add(cube.material, 'sheen', 0, 1, 0.1);
 
+gsap.to(cube.rotation, {
+    scrollTrigger: {
+      trigger: ".scroll-container",
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true
+    },
+    x: 6.28, // Rotate cube along X axis (one full rotation)
+    y: 6.28, // Rotate cube along Y axis (one full rotation)
+});
+
 // ESCENA DOS
 const sceneTwo = new THREE.Scene();
-sceneTwo.background = new THREE.Color(0xfefefe);
+sceneTwo.background = new THREE.Color(backgroundObject.color);
 // Iluminación
 sceneTwo.add(ambientLight);
 sceneTwo.add(pointLightOne);
@@ -159,6 +187,7 @@ let transitionActive = false;
 let transitionProgress = 0;
 // Controles de la cámara
 const controls = new OrbitControls(currentCamera, renderer.domElement);
+controls.enableZoom = false;  
 controls.enableDamping = true;  // Suaviza el movimiento
 controls.dampingFactor = 0.1;
 let cameraAnimationActive = false;
@@ -203,10 +232,54 @@ window.addEventListener('click', (event) => {
 function easeInOut(t) {
     return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
+// Listen for mouse movement
+let target = new THREE.Vector3();
+let mouseX = 0, mouseY = 0; // Usamos let porque los valores se actualizarán
+let speed = 0.02; // 0.02
+document.addEventListener('mousemove', onDocumentMouseMove, false);
+function onDocumentMouseMove(event) {
+    mouseX = (event.clientX - windowHalfX) / windowHalfX;
+    mouseY = (event.clientY - windowHalfY) / windowHalfY;
+}
+
+let isMousePressed = false;
+let previousMouseX = 0;
+let previousMouseY = 0;
+// Evento de mousedown para detectar cuando el mouse se presiona
+window.addEventListener('mousedown', (event) => {
+    isMousePressed = true;
+    controls.enabled = false;  // Desactivar los controles de la cámara
+    previousMouseX = event.clientX;
+    previousMouseY = event.clientY;
+});
+// Evento de mouseup para detectar cuando el mouse se suelta
+window.addEventListener('mouseup', () => {
+    isMousePressed = false;
+    controls.enabled = true;  // Reactivar los controles de la cámara
+});
+// Evento de mousemove para rotar el cubo al mover el mouse mientras está presionado
+window.addEventListener('mousemove', (event) => {
+    if (isMousePressed) {
+        const deltaX = event.clientX - previousMouseX;
+        const deltaY = event.clientY - previousMouseY;
+
+        // Ajustar la sensibilidad de la rotación
+        const rotationSpeed = 0.005;
+        
+        // Aplicar la rotación del cubo
+        cube.rotation.y += deltaX * rotationSpeed;
+        cube.rotation.x += deltaY * rotationSpeed;
+
+        previousMouseX = event.clientX;
+        previousMouseY = event.clientY;
+    }
+});
+
 
 // Renderizado
 function animate() {
     requestAnimationFrame(animate);
+
     // Actualizar controles
     controls.update();
 
@@ -302,3 +375,27 @@ function animate() {
 }
 
 animate();
+
+// Girar el cubo suavemente
+function rotateCube(direction) {
+    const elapsedTime = clock.getElapsedTime();
+    const rotationPI = elapsedTime * Math.PI * 2;
+
+    const rotationAngle = Math.PI / 2; // Girar 90 grados
+    const duration = 500; // Duración de la rotación en milisegundos
+    const startRotation = cube.rotation.y;
+    const endRotation = direction === 'next' ? startRotation + rotationAngle : startRotation - rotationAngle;
+
+    let startTime = null;
+    function rotate(time) {
+        if (!startTime) startTime = time;
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        cube.rotation.y = startRotation + progress * (endRotation - startRotation); //rotationPI
+
+        if (progress < 1) {
+            requestAnimationFrame(rotate);
+        }
+    }
+    requestAnimationFrame(rotate);
+}

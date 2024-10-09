@@ -1,6 +1,9 @@
 body { margin: 0; }
 canvas { display: block; }
-
+.scroll-container {
+    height: 200vh;
+    position: absolute;
+}
 #loading-screen {
     position: fixed;
     top: 0;
